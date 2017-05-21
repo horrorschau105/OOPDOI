@@ -34,10 +34,36 @@ namespace L9
         }
         public T Resolve<T>() where T : new() // T has default, nonparameter constructor
         {
-            // TODO
-            return new T();
-           
+            if (registeredDependencies.ContainsKey(typeof(T)))  // first check in Dependencies
+            { 
+                if (registeredTypes[typeof(T)])  // [create and] return singleton
+                {
+                    if (singletons.ContainsKey(typeof(T)))
+                        return (T)singletons[typeof(T)];
+                    singletons[typeof(T)] = (T)Activator.CreateInstance(registeredDependencies[typeof(T)]);
+                    return (T)singletons[typeof(T)];
+                }
+                return (T)Activator.CreateInstance(registeredDependencies[typeof(T)]);
+            }
+            else if (registeredTypes.ContainsKey(typeof(T)))  // if not in Dependencies then maybe it's just a concrete, registered type
+            { 
+                return new T();
+            }
+            else  // throw reasonable exception
+            {
+                throw new UnregisteredTypeException("TODO: fancy info");
+            }
         }
-        
+    }
+
+    [Serializable]
+    public class UnregisteredTypeException : Exception
+    {
+        public UnregisteredTypeException() { }
+        public UnregisteredTypeException(string message) : base(message) { }
+        public UnregisteredTypeException(string message, Exception inner) : base(message, inner) { }
+        protected UnregisteredTypeException(
+          System.Runtime.Serialization.SerializationInfo info,
+          System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
     }
 }
