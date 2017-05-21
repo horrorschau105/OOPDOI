@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace L9
 {
-    public class SimplyContainer // should it be singleton?
+    public class SimplyContainer // should it be singleton? -> I'd say: doesn't have to
     {
         Dictionary<Type, object> singletons; // for constructed singletons
         Dictionary<Type, bool> registeredTypes; //  foreach class remember if it wants singleton
@@ -20,12 +20,15 @@ namespace L9
         public void RegisterType<T>(bool Singleton) where T : class
         {
             if (registeredTypes.ContainsKey(typeof(T))) registeredTypes[typeof(T)] = Singleton;
-            else registeredTypes.Add(typeof(T), Singleton); // simply add/change settings of class
+            else registeredTypes[typeof(T)] = Singleton;  // add/update settings of class
+            // else registeredTypes.Add(typeof(T), Singleton);  // it adds or throws exeption if key exists, why this over indexer?
         }
         public void RegisterType<From, To>(bool Singleton) where To : class, From
         {
             if (registeredDependencies.ContainsKey(typeof(From))) registeredDependencies[typeof(From)] = typeof(To);
-            else registeredDependencies.Add(typeof(From), typeof(To)); // same as upper
+            else registeredDependencies[typeof(From)] = typeof(To); // same as upper
+            // else registeredDependencies.Add(typeof(From), typeof(To)); // same as upper
+
             // register 'To' type too
             RegisterType<To>(Singleton);
         }
