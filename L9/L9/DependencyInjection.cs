@@ -22,16 +22,18 @@ namespace L9
             if (registeredTypes.ContainsKey(typeof(T))) registeredTypes[typeof(T)] = Singleton;
             else registeredTypes.Add(typeof(T), Singleton); // simply add/change settings of class
         }
-        public void RegisterType<From, To>(bool Singleton) where To : From
+        public void RegisterType<From, To>(bool Singleton) where To : class, From
         {
             if (registeredDependencies.ContainsKey(typeof(From))) registeredDependencies[typeof(From)] = typeof(To);
             else registeredDependencies.Add(typeof(From), typeof(To)); // same as upper
             // register 'To' type too
-           // RegisterType<To>(Singleton); // why can't I do it?
+            RegisterType<To>(Singleton);
         }
-        public T Resolve<T>() where T : class
+        public T Resolve<T>() where T : new() // T has default, nonparameter constructor
         {
-           // TODO
+            // TODO
+            return new T();
+           
         }
         
     }
