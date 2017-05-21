@@ -28,7 +28,7 @@ namespace L9
             if (registeredDependencies.ContainsKey(typeof(From))) registeredDependencies[typeof(From)] = typeof(To);
             else registeredDependencies[typeof(From)] = typeof(To); // same as upper
             // else registeredDependencies.Add(typeof(From), typeof(To)); // same as upper
-
+            registeredTypes[typeof(From)] = Singleton;
             // register 'To' type too
             RegisterType<To>(Singleton);
         }
@@ -55,18 +55,18 @@ namespace L9
             }
             catch (Exception e)
             {
-                throw new UnregisteredTypeException("TODO: fancy info with Exception e");
+                throw new UnresolveableTypeException("TODO: fancy info with Exception e\n" + e.ToString());
             }
         }
     }
 
     [Serializable]
-    public class UnregisteredTypeException : Exception
+    public class UnresolveableTypeException : Exception
     {
-        public UnregisteredTypeException() { }
-        public UnregisteredTypeException(string message) : base(message) { }
-        public UnregisteredTypeException(string message, Exception inner) : base(message, inner) { }
-        protected UnregisteredTypeException(
+        public UnresolveableTypeException() { }
+        public UnresolveableTypeException(string message) : base(message) { }
+        public UnresolveableTypeException(string message, Exception inner) : base(message, inner) { }
+        protected UnresolveableTypeException(
           System.Runtime.Serialization.SerializationInfo info,
           System.Runtime.Serialization.StreamingContext context) : base(info, context) { }
     }
