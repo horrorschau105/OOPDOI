@@ -32,26 +32,30 @@ namespace L9
             // register 'To' type too
             RegisterType<To>(Singleton);
         }
-        public T Resolve<T>() where T : new() // T has default, nonparameter constructor
+        public T Resolve<T>()  // IMO: we have to first check if T is in Dependencies even if T has default constructor
         {
-            if (registeredDependencies.ContainsKey(typeof(T)))  // first check in Dependencies
-            { 
-                if (registeredTypes[typeof(T)])  // [create and] return singleton
-                {
-                    if (singletons.ContainsKey(typeof(T)))
-                        return (T)singletons[typeof(T)];
-                    singletons[typeof(T)] = (T)Activator.CreateInstance(registeredDependencies[typeof(T)]);
-                    return (T)singletons[typeof(T)];
-                }
-                return (T)Activator.CreateInstance(registeredDependencies[typeof(T)]);
-            }
-            else if (registeredTypes.ContainsKey(typeof(T)))  // if not in Dependencies then maybe it's just a concrete, registered type
-            { 
-                return new T();
-            }
-            else  // throw reasonable exception
+            Func<Type, T> getSingleton = (Type type) =>  // helper function
             {
-                throw new UnregisteredTypeException("TODO: fancy info");
+                if (singletons.ContainsKey(typeof(T)))
+                    return (T)singletons[typeof(T)];
+                singletons[typeof(T)] = (T)Activator.CreateInstance(type);
+                return (T)singletons[typeof(T)];
+            };
+            try
+            {
+                if (registeredDependencies.ContainsKey(typeof(T)))  // first check in Dependencies
+                {
+                    if (registeredTypes.ContainsKey(typeof(T)))  // singleton
+                        return getSingleton(registeredDependencies[typeof(T)]);
+                    return (T)Activator.CreateInstance(registeredDependencies[typeof(T)]);
+                }
+                if (registeredTypes.ContainsKey(typeof(T)))  // singleton
+                    return getSingleton(typeof(T));
+                return (T)Activator.CreateInstance(typeof(T));
+            }
+            catch (Exception e)
+            {
+                throw new UnregisteredTypeException("TODO: fancy info with Exception e");
             }
         }
     }
