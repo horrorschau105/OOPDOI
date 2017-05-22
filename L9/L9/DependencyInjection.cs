@@ -33,7 +33,7 @@ namespace L9
             RegisterType<To>(Singleton);
         }
         public T Resolve<T>()  // IMO: we have to first check if T is in Dependencies even if T has default constructor
-        {
+        { // should be recursive
             Func<Type, T> getSingleton = (Type type) =>  // helper function
             {
                 if (singletons.ContainsKey(typeof(T)))

@@ -5,24 +5,6 @@ using L9;
 namespace TestProject
 {
     [TestClass]
-    public class TestClass
-    {
-        [TestMethod]
-        public void TestOfTest()
-        {
-            Assert.AreNotEqual(5, 6);
-           
-        }
-        [TestMethod]
-        public void CanUseContainer()
-        {
-            SimplyContainer sc = new SimplyContainer();
-            
-            Assert.IsNotNull(sc);
-        }
-    }
-
-    [TestClass]
     public class TestResolve
     {
         [TestMethod]
@@ -94,9 +76,19 @@ namespace TestProject
                 // check exception message/trace?
             }
         }
+        [TestMethod]
+        public void DoubleDeriving()
+        {
+            var sc = new SimplyContainer();
+            sc.RegisterType<IFoo, IBur>(false);
+            sc.RegisterType<IBur, Bur>(false);
+            var bur = sc.Resolve<IFoo>();
+            Assert.IsInstanceOfType(bur, typeof(Bur));
+        }
     }
-
     interface IFoo { }
+    interface IBur : IFoo { }
+    class Bur : IBur { }
     class Foo : IFoo { }  // with default constructor
 
     class Bar
