@@ -6,11 +6,11 @@ using System.Threading.Tasks;
 
 namespace L9
 {
-    public class SimplyContainer // should it be singleton? -> I'd say: doesn't have to
+    public class SimplyContainer  // should it be singleton? -> I'd say: doesn't have to
     {
-        Dictionary<Type, object> singletons; // for constructed singletons
-        Dictionary<Type, bool> registeredTypes; //  foreach class remember if it wants singleton
-        Dictionary<Type, Type> registeredDependencies; // foreach class/interface remember deriving class
+        Dictionary<Type, object> singletons;  // for constructed singletons
+        Dictionary<Type, bool> registeredTypes;  //  foreach class remember if it wants singleton
+        Dictionary<Type, Type> registeredDependencies;  // foreach class/interface remember deriving class
         public SimplyContainer()
         {
             registeredDependencies = new Dictionary<Type, Type>();
@@ -23,7 +23,7 @@ namespace L9
         }
         public void RegisterType<From, To>(bool Singleton) where To : class, From
         {
-            registeredDependencies[typeof(From)] = typeof(To); // same as upper
+            registeredDependencies[typeof(From)] = typeof(To);  // same as upper
             registeredTypes[typeof(From)] = Singleton;
             // register 'To' type too
             RegisterType<To>(Singleton);
@@ -32,7 +32,7 @@ namespace L9
         {
             try
             {
-                var currentType = typeof(T); // 'currentTime' may not be a good name for variable, change if you want
+                var currentType = typeof(T);  // 'currentTime' may not be a good name for variable, change if you want
                 while (registeredDependencies.ContainsKey(currentType))  // first checks in Dependencies
                 {
                     currentType = registeredDependencies[currentType];
@@ -46,14 +46,17 @@ namespace L9
                 throw new UnresolveableTypeException("Unable to resolve\n"+ e.ToString());
             }
         }
-        T GetObject<T>(Type type) // returns object of type T, handling the singletons
+        T GetObject<T>(Type type)  // returns object of type T, handling the singletons
         {
-            if(registeredTypes[type])// return singleton
+            // pick one key
+            // var key = typeof(T);  // keep singleton for first 'From' type
+            var key = type;  // keep singleton for last 'To' type
+            if (registeredTypes[type])  // return singleton
             {
-                if (singletons.ContainsKey(typeof(T)))
-                    return (T)singletons[typeof(T)];
-                singletons[typeof(T)] = (T)Activator.CreateInstance(type);
-                return (T)singletons[typeof(T)];
+                if (singletons.ContainsKey(key))
+                    return (T)singletons[key];
+                singletons[key] = (T)Activator.CreateInstance(type);
+                return (T)singletons[key];
             }
             return (T)Activator.CreateInstance(type); 
         }
