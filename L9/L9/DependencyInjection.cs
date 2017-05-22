@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace L9
 {
-    public class SimplyContainer  // should it be singleton? -> I'd say: doesn't have to
+    public class SimplyContainer  
     {
         Dictionary<Type, object> singletons;  // for constructed singletons
         Dictionary<Type, bool> registeredTypes;  //  foreach class remember if it wants singleton
@@ -25,14 +25,13 @@ namespace L9
         {
             registeredDependencies[typeof(From)] = typeof(To);  // same as upper
             registeredTypes[typeof(From)] = Singleton;
-            // register 'To' type too
-            RegisterType<To>(Singleton);
+            RegisterType<To>(Singleton); // register 'To' type too
         }
         public T Resolve<T>()  
         {
             try
             {
-                var currentType = typeof(T);  // 'currentTime' may not be a good name for variable, change if you want
+                var currentType = typeof(T);  
                 while (registeredDependencies.ContainsKey(currentType))  // first checks in Dependencies
                 {
                     currentType = registeredDependencies[currentType];
@@ -48,9 +47,7 @@ namespace L9
         }
         T GetObject<T>(Type type)  // returns object of type T, handling the singletons
         {
-            // pick one key
-            // var key = typeof(T);  // keep singleton for first 'From' type
-            var key = type;  // keep singleton for last 'To' type
+            var key = type;  
             if (registeredTypes[type])  // return singleton
             {
                 if (singletons.ContainsKey(key))

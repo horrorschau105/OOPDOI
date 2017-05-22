@@ -72,11 +72,11 @@ namespace TestProject
         public void ManipulatingSingletonPolicy()
         {
             var sc = new SimplyContainer();
-            sc.RegisterType<Foo>(true);  // Bar has private constructor ...
+            sc.RegisterType<Foo>(true);  
             var o2 = sc.Resolve<Foo>();
             sc.RegisterType<Foo>(false);
             var o3 = sc.Resolve<Foo>();
-            Assert.AreNotEqual(o2, o3);  // Assert.IsTrue(!o2.Equals(o3));
+            Assert.AreNotEqual(o2, o3); 
         }
         [TestMethod]
         public void ManipulatingDependencies()
@@ -86,9 +86,7 @@ namespace TestProject
             Foo o1 = (Foo)sc.Resolve<IFoo>();
             sc.RegisterType<IFoo, Fux>(true);
             Fux o2 = (Fux)sc.Resolve<IFoo>();
-            Assert.AreNotEqual(o1, o2);  // why we care about types? since we declared them explicitly above
-            // why o1 should be equal to o2? We changed registered type between resolves
-            // Assert.IsTrue(o1.GetType() == o2.GetType());  // old line
+            Assert.AreNotEqual(o1, o2);  
         }
         [TestMethod]
         public void ManipulateSingletonPolicyAndDependencies()
