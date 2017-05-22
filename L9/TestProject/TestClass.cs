@@ -8,25 +8,31 @@ namespace TestProject
     public class TestResolve
     {
         [TestMethod]
-        public void Dependency()
+        public void ContainerNotNull()
+        {
+            SimplyContainer sc = new SimplyContainer();
+            Assert.IsNotNull(sc);
+        }
+        [TestMethod]
+        public void SimpleClassResolve()
+        {
+            SimplyContainer sc = new SimplyContainer();
+            sc.RegisterType<Foo>(true);
+            Assert.IsInstanceOfType(sc.Resolve<Foo>(), typeof(Foo));
+        }
+        [TestMethod]
+        public void SimpleDependency()
         {
             SimplyContainer sc = new SimplyContainer();
             sc.RegisterType<IFoo, Foo>(false);
             Assert.IsInstanceOfType(sc.Resolve<IFoo>(), typeof(Foo));
         }
         [TestMethod]
+        [ExpectedException(typeof(UnresolveableTypeException))]
         public void NotRegisteredDependency()
         {
             SimplyContainer sc = new SimplyContainer();
-            try
-            {
-                var f = sc.Resolve<IFoo>();
-                Assert.Fail("Not registered dependency");
-            }
-            catch (UnresolveableTypeException)
-            {
-                // check exception message/trace?
-            }
+            var f = sc.Resolve<Foo>();
         }
         [TestMethod]
         public void ConcreteSingleton()
@@ -38,43 +44,20 @@ namespace TestProject
             Assert.AreEqual(f1, f2);
         }
         [TestMethod]
+        public void NotSingleton()
+        {
+            SimplyContainer sc = new SimplyContainer();
+            sc.RegisterType<Foo>(false);
+            var f1 = sc.Resolve<Foo>();
+            var f2 = sc.Resolve<Foo>();
+            Assert.AreNotEqual(f1, f2);
+        }
+        [TestMethod]
         public void DependencySingleton()
         {
             SimplyContainer sc = new SimplyContainer();
             sc.RegisterType<IFoo, Foo>(true);
             Assert.AreEqual(sc.Resolve<IFoo>(), sc.Resolve<IFoo>());
-        }
-        [TestMethod]
-        public void UnregisteredType()
-        {
-            SimplyContainer sc = new SimplyContainer();
-
-            Foo f1 = sc.Resolve<Foo>();
-            Foo f2 = sc.Resolve<Foo>();
-
-            Assert.AreNotSame(f1, f2);
-            Assert.IsInstanceOfType(f1, typeof(Foo));
-            Assert.IsInstanceOfType(f2, typeof(Foo));
-
-            try
-            {
-                Bar b = sc.Resolve<Bar>();
-                Assert.Fail("Bar does not have any constructor");
-            }
-            catch (UnresolveableTypeException)
-            {
-                // check exception message/trace?
-            }
-
-            try
-            {
-                Qux q = sc.Resolve<Qux>();
-                Assert.Fail("Qux does not have default constructor");
-            }
-            catch (UnresolveableTypeException)
-            {
-                // check exception message/trace?
-            }
         }
         [TestMethod]
         public void DoubleDeriving()
@@ -85,12 +68,44 @@ namespace TestProject
             var bur = sc.Resolve<IFoo>();
             Assert.IsInstanceOfType(bur, typeof(Bur));
         }
+        [TestMethod]
+        public void ManipulatingSingletonPolicy()
+        {
+            var sc = new SimplyContainer();
+            sc.RegisterType<Bar>(true);
+            var o2 = sc.Resolve<Bar>();
+            sc.RegisterType<Bar>(false);
+            var o3 = sc.Resolve<Bar>();
+            Assert.IsTrue(!o2.Equals(o3));
+        }
+        [TestMethod]
+        public void ManipulatingDependencies()
+        {
+            var sc = new SimplyContainer();
+            sc.RegisterType<IFoo, Foo>(true);
+            Foo o1 = (Foo)sc.Resolve<IFoo>();
+            sc.RegisterType<IFoo, Fux>(true);
+            Fux o2 = (Fux)sc.Resolve<IFoo>();
+            Assert.IsTrue(o1.GetType() == o2.GetType());
+        }
+        [TestMethod]
+        public void ManipulateSingletonPolicyAndDependencies()
+        {
+            var sc = new SimplyContainer();
+            sc.RegisterType<IFoo, Foo>(false);
+            var o1 = sc.Resolve<IFoo>();
+            var o2 = sc.Resolve<IFoo>();
+            sc.RegisterType<IFoo, Fux>(true);
+            var o3 = sc.Resolve<IFoo>();
+            var o4 = sc.Resolve<IFoo>();
+            Assert.IsTrue(!o1.Equals(o2) && o3.Equals(o4) && o2.GetType() != o3.GetType());
+        }
     }
     interface IFoo { }
     interface IBur : IFoo { }
     class Bur : IBur { }
     class Foo : IFoo { }  // with default constructor
-
+    class Fux : IFoo { }
     class Bar
     {
         private Bar() { }

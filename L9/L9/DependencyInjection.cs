@@ -19,44 +19,43 @@ namespace L9
         }
         public void RegisterType<T>(bool Singleton) where T : class
         {
-            if (registeredTypes.ContainsKey(typeof(T))) registeredTypes[typeof(T)] = Singleton;
-            else registeredTypes[typeof(T)] = Singleton;  // add/update settings of class
-            // else registeredTypes.Add(typeof(T), Singleton);  // it adds or throws exeption if key exists, why this over indexer?
+            registeredTypes[typeof(T)] = Singleton;
         }
         public void RegisterType<From, To>(bool Singleton) where To : class, From
         {
-            if (registeredDependencies.ContainsKey(typeof(From))) registeredDependencies[typeof(From)] = typeof(To);
-            else registeredDependencies[typeof(From)] = typeof(To); // same as upper
-            // else registeredDependencies.Add(typeof(From), typeof(To)); // same as upper
+            registeredDependencies[typeof(From)] = typeof(To); // same as upper
             registeredTypes[typeof(From)] = Singleton;
             // register 'To' type too
             RegisterType<To>(Singleton);
         }
-        public T Resolve<T>()  // IMO: we have to first check if T is in Dependencies even if T has default constructor
-        { // should be recursive
-            Func<Type, T> getSingleton = (Type type) =>  // helper function
+        public T Resolve<T>()  
+        {
+            try
+            {
+                var currentType = typeof(T); // 'currentTime' may not be a good name for variable, change if you want
+                while (registeredDependencies.ContainsKey(currentType))  // first checks in Dependencies
+                {
+                    currentType = registeredDependencies[currentType];
+                }
+                if (registeredTypes.ContainsKey(currentType))  // otherwise T should be here registered
+                    return GetObject<T>(currentType);
+                throw new Exception(string.Format("Not registered type: {0}\n", currentType.ToString()));
+            }
+            catch (Exception e)
+            {
+                throw new UnresolveableTypeException("Unable to resolve\n"+ e.ToString());
+            }
+        }
+        T GetObject<T>(Type type) // returns object of type T, handling the singletons
+        {
+            if(registeredTypes[type])// return singleton
             {
                 if (singletons.ContainsKey(typeof(T)))
                     return (T)singletons[typeof(T)];
                 singletons[typeof(T)] = (T)Activator.CreateInstance(type);
                 return (T)singletons[typeof(T)];
-            };
-            try
-            {
-                if (registeredDependencies.ContainsKey(typeof(T)))  // first check in Dependencies
-                {
-                    if (registeredTypes.ContainsKey(typeof(T)))  // singleton
-                        return getSingleton(registeredDependencies[typeof(T)]);
-                    return (T)Activator.CreateInstance(registeredDependencies[typeof(T)]);
-                }
-                if (registeredTypes.ContainsKey(typeof(T)))  // singleton
-                    return getSingleton(typeof(T));
-                return (T)Activator.CreateInstance(typeof(T));
             }
-            catch (Exception e)
-            {
-                throw new UnresolveableTypeException("TODO: fancy info with Exception e\n" + e.ToString());
-            }
+            return (T)Activator.CreateInstance(type); 
         }
     }
 
