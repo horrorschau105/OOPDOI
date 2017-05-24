@@ -100,6 +100,26 @@ namespace TestProject
             var o4 = sc.Resolve<IFoo>();
             Assert.IsTrue(!o1.Equals(o2) && o3.Equals(o4) && o2.GetType() != o3.GetType());
         }
+    [TestMethod]
+    public void InstanceRegister()
+        {
+            SimplyContainer sc = new SimplyContainer();
+            Qux q = new Qux(4);
+            sc.RegisterInstance<Qux>(q);
+            var resolvedQ = sc.Resolve<Qux>();
+            Assert.IsTrue(resolvedQ == q);
+        }
+    [TestMethod]
+    public void ManipulateInstance()
+        {
+            SimplyContainer sc = new SimplyContainer();
+            Qux q1 = new Qux(4);
+            sc.RegisterInstance<Qux>(q1);
+            Qux q2 = new Qux(5);
+            sc.RegisterInstance(q2);
+            Qux resolved = sc.Resolve<Qux>();
+            Assert.IsTrue(q2 == resolved);
+        }
     }
     interface IFoo { }
     interface IBur : IFoo { }

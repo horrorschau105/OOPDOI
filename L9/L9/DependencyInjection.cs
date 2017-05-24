@@ -8,14 +8,16 @@ namespace L9
 {
     public class SimplyContainer  
     {
+        Dictionary<Type, object> registeredInstances; // for registered instances
         Dictionary<Type, object> singletons;  // for constructed singletons
         Dictionary<Type, bool> registeredTypes;  //  foreach class remember if it wants singleton
         Dictionary<Type, Type> registeredDependencies;  // foreach class/interface remember deriving class
         public SimplyContainer()
-        {
+        { 
             registeredDependencies = new Dictionary<Type, Type>();
             registeredTypes = new Dictionary<Type, bool>();
             singletons = new Dictionary<Type, object>();
+            registeredInstances = new Dictionary<Type, object>();
         }
         public void RegisterType<T>(bool Singleton) where T : class
         {
@@ -27,6 +29,10 @@ namespace L9
             registeredTypes[typeof(From)] = Singleton;
             RegisterType<To>(Singleton); // register 'To' type too
         }
+        public void RegisterInstance<T>(T Instance)
+        {
+            registeredInstances[typeof(T)] = Instance;
+        }
         public T Resolve<T>()  
         {
             try
@@ -36,8 +42,11 @@ namespace L9
                 {
                     currentType = registeredDependencies[currentType];
                 }
+                if (registeredInstances.ContainsKey(currentType)) // check for registered instance
+                    return (T)registeredInstances[currentType];
                 if (registeredTypes.ContainsKey(currentType))  // otherwise T should be here registered
                     return GetObject<T>(currentType);
+                
                 throw new Exception(string.Format("Not registered type: {0}\n", currentType.ToString()));
             }
             catch (Exception e)
