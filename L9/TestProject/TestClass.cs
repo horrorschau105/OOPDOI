@@ -27,13 +27,13 @@ namespace TestProject
             sc.RegisterType<IFoo, Foo>(false);
             Assert.IsInstanceOfType(sc.Resolve<IFoo>(), typeof(Foo));
         }
-        [TestMethod]
+        /**[TestMethod]
         [ExpectedException(typeof(UnresolveableTypeException))]
         public void NotRegisteredDependency()
         {
             SimplyContainer sc = new SimplyContainer();
             var f = sc.Resolve<Foo>();
-        }
+        }*/
         [TestMethod]
         public void ConcreteSingleton()
         {
@@ -41,7 +41,7 @@ namespace TestProject
             sc.RegisterType<Foo>(true);
             var f1 = sc.Resolve<Foo>();
             var f2 = sc.Resolve<Foo>();
-            Assert.AreEqual(f1, f2);
+            Assert.AreSame(f1, f2);
         }
         [TestMethod]
         public void NotSingleton()
@@ -100,8 +100,8 @@ namespace TestProject
             var o4 = sc.Resolve<IFoo>();
             Assert.IsTrue(!o1.Equals(o2) && o3.Equals(o4) && o2.GetType() != o3.GetType());
         }
-    [TestMethod]
-    public void InstanceRegister()
+        [TestMethod]
+        public void InstanceRegister()
         {
             SimplyContainer sc = new SimplyContainer();
             Qux q = new Qux(4);
@@ -109,8 +109,8 @@ namespace TestProject
             var resolvedQ = sc.Resolve<Qux>();
             Assert.IsTrue(resolvedQ == q);
         }
-    [TestMethod]
-    public void ManipulateInstance()
+        [TestMethod]
+        public void ManipulateInstance()
         {
             SimplyContainer sc = new SimplyContainer();
             Qux q1 = new Qux(4);
@@ -120,12 +120,12 @@ namespace TestProject
             Qux resolved = sc.Resolve<Qux>();
             Assert.IsTrue(q2 == resolved);
         }
-    [TestMethod]
-    public void SimpleMultiparameterConstructor()
+        [TestMethod]
+        public void SimpleMultiparameterConstructor()
         {
             SimplyContainer sc = new SimplyContainer();
             sc.RegisterInstance<int>(5);
-            Qux q1 = new Qux(6);
+            Qux q1 = new Qux(6);  // #Msg: we need this?
             var q2 = sc.Resolve<Qux>();
             Assert.IsTrue(q2.x == 5);
         }
@@ -144,7 +144,7 @@ namespace TestProject
     {
         public int x;
         public Qux(int xd) {
-            x = xd
+            x = xd;
         }
     }
 }
