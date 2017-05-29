@@ -120,6 +120,15 @@ namespace TestProject
             Qux resolved = sc.Resolve<Qux>();
             Assert.IsTrue(q2 == resolved);
         }
+    [TestMethod]
+    public void SimpleMultiparameterConstructor()
+        {
+            SimplyContainer sc = new SimplyContainer();
+            sc.RegisterInstance<int>(5);
+            Qux q1 = new Qux(6);
+            var q2 = sc.Resolve<Qux>();
+            Assert.IsTrue(q2.x == 5);
+        }
     }
     interface IFoo { }
     interface IBur : IFoo { }
@@ -133,6 +142,9 @@ namespace TestProject
 
     class Qux
     {
-        public Qux(int xd) { }
+        public int x;
+        public Qux(int xd) {
+            x = xd
+        }
     }
 }
