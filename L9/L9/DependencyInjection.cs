@@ -34,8 +34,9 @@ namespace L9
         {
             registeredInstances[typeof(T)] = Instance;
         }
-        HashSet<Type> typesToResolve = null;  // avoid cycles in resolving tree by remembering types in set
-        public T Resolve<T>()
+        public T Resolve<T>(HashSet<Type> resolvedTypes = null)
+        // avoid cycles in resolving tree by remembering types in set
+        // at the beginning, our set is empty
         {
             try
             {
@@ -45,55 +46,23 @@ namespace L9
                 if (registeredInstances.ContainsKey(currentType))  // check for registered instance
                     return (T)registeredInstances[currentType];
 
-                // #Msg: recursive calls make new ones; create during first call
-                bool canDestroySet = false;
-                if (typesToResolve == null)
-                {
-                    typesToResolve = new HashSet<Type>();
-                    canDestroySet = true;
-                }
+                
+                if (resolvedTypes == null) resolvedTypes = new HashSet<Type>(); // if empty, initialize
 
                 var ctors = currentType.GetConstructors();
                 // take constructors with max parameters count
-                var maxCtors = ctors.Where(ci => ci.GetParameters().Count() == ctors.Max(x => x.GetParameters().Count()));
+                var maxCtors = ctors.Where(ci => ci.GetParameters().Count() == 
+                    ctors.Max(x => x.GetParameters().Count()));
                 if (maxCtors.Count() > 1)
                     throw new Exception("There is more than one constructor with maximal count of parameters\n");
-                /**
-                int maxCountOfParams = 0, countOfMaximals = 0;  // remember max count of constructor params and how many of them are there
-                ConstructorInfo constructor = null;  // this will have most 
-                foreach (var ctor in ctors)
-                {
-                    if(ctor.GetParameters().Count() > maxCountOfParams)
-                    {
-                        maxCountOfParams = ctor.GetParameters().Count();
-                        constructor = ctor;
-                        countOfMaximals = 1;
-                    }
-                    if(ctor.GetParameters().Count() == maxCountOfParams)
-                    {
-                        countOfMaximals++;
-                    }
-                }
-                if(countOfMaximals > 1)  // there is more than one ctor with maximal count of parameters
-                {
-                    throw new Exception("There is more than one constructor with maximal count of parameters\n");
-                }
-                */
                 var constructor = maxCtors.First();
                 // handle singleton, pass as a parameter 'a way' to create new instance
-                var resolvedInstance = GetObject<T>(currentType, () => InvokeConstructor<T>(constructor));
-
-                if (canDestroySet)  // clear after constructing all objects
-                    typesToResolve = null;
+                var resolvedInstance = GetObject<T>(currentType, 
+                    () => InvokeConstructor<T>(constructor, resolvedTypes));
 
                 return resolvedInstance;
                 
-                //if (registeredTypes.ContainsKey(currentType))  // otherwise T should be here registered
-                //    return GetObject<T>(currentType);
-                
-                // #Msg: ??
-                throw new Exception(string.Format("Not registered type: {0}\n", currentType.ToString()));
-            }
+                }
             catch (Exception e)
             {
                 throw new UnresolveableTypeException("Unable to resolve\n"+ e.ToString());
@@ -110,7 +79,7 @@ namespace L9
             }
             return getNewInstance();
         }
-        T InvokeConstructor<T>(ConstructorInfo constructor)  // returns object of type T, handling the singletons
+        T InvokeConstructor<T>(ConstructorInfo constructor, HashSet<Type> resolvedTypes)  // returns object of type T, handling the singletons
         {
             return (T)constructor.Invoke(
                 constructor
@@ -119,23 +88,28 @@ namespace L9
                     new List<object>(),
                     (acc, param) => {
                         Type paramType = param.ParameterType;
-                        if (typesToResolve.Contains(paramType))
+                        if (resolvedTypes.Contains(paramType))
                             throw new Exception("There is a cycle in a tree");
                         else
                         {
-                            typesToResolve.Add(paramType);
+                            HashSet<Type> resolvedTypesForNextCall = new HashSet<Type>(resolvedTypes); // we want a COPY of this set!
+                            resolvedTypesForNextCall.Add(typeof(T)); // add current type to copied set
                             acc.Add(
-                                GetType()
+                                this
+                                .GetType()
                                 .GetMethod("Resolve")
                                 .MakeGenericMethod(paramType)
-                                .Invoke(this, new object[] { })
+                                .Invoke(this, new object[] { resolvedTypesForNextCall }) // and call recursive
+                                // #Msg:
+                                // we remember only 'Type' path between root and leaf in this way
+                                // instead of whole tree
                             );
                             return acc;
                         }
                     }
                 )
                 .ToArray()
-            );  // #Msg: dunno if those indents are more readable...
+            );  
         }
     }
 

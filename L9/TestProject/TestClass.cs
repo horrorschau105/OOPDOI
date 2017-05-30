@@ -27,13 +27,6 @@ namespace TestProject
             sc.RegisterType<IFoo, Foo>(false);
             Assert.IsInstanceOfType(sc.Resolve<IFoo>(), typeof(Foo));
         }
-        /**[TestMethod]
-        [ExpectedException(typeof(UnresolveableTypeException))]
-        public void NotRegisteredDependency()
-        {
-            SimplyContainer sc = new SimplyContainer();
-            var f = sc.Resolve<Foo>();
-        }*/
         [TestMethod]
         public void ConcreteSingleton()
         {
@@ -101,7 +94,7 @@ namespace TestProject
             Assert.IsTrue(!o1.Equals(o2) && o3.Equals(o4) && o2.GetType() != o3.GetType());
         }
         [TestMethod]
-        public void InstanceRegister()
+        public void RegisterInstance()
         {
             SimplyContainer sc = new SimplyContainer();
             Qux q = new Qux(4);
@@ -129,9 +122,58 @@ namespace TestProject
             var q2 = sc.Resolve<Qux>();
             Assert.IsTrue(q2.x == 5);
         }
+        [TestMethod]
+        [ExpectedException(typeof(UnresolveableTypeException))]
+        public void SimpleCycleInTree()
+        {
+            SimplyContainer sc = new SimplyContainer();
+            var x = sc.Resolve<Bux>();
+            Assert.Fail();
+        }
+        [TestMethod]
+        public void ConstructorWithFourParamsToResolve()
+        {
+            var sc = new SimplyContainer();
+            sc.RegisterInstance<string>("test");
+            sc.RegisterInstance<int>(17);
+            var res = sc.Resolve<Qoo>();
+            Assert.IsTrue(res.foo == "test" && res.q.x == 17);
+        }
+        [TestMethod]
+        [ExpectedException(typeof(UnresolveableTypeException))]
+        public void ManyConstructorsOfMaxParamCount()
+        {
+            SimplyContainer sc = new SimplyContainer();
+            var x = sc.Resolve<Wux>();
+            Assert.Fail();
+        }
+        [TestMethod]
+        public void ClassWithSameTypeParam()
+        {
+            SimplyContainer sc = new SimplyContainer();
+            sc.RegisterInstance(7);
+            var p = sc.Resolve<Punkt>();
+            Assert.IsTrue(p != null);
+        }
+        [TestMethod]
+        //[ExpectedException(typeof(UnresolveableTypeException))]
+        public void ResolveManyTimesSameTypeButNoCycleInTree()
+        {
+            SimplyContainer sc = new SimplyContainer();
+            sc.RegisterInstance(5);
+            sc.RegisterInstance("");
+            var x = sc.Resolve<Var>();
+            Assert.IsTrue(x != null);
+        }
+
+
     }
     interface IFoo { }
     interface IBur : IFoo { }
+    class Bux
+    {
+        public Bux(Bux x) { }
+    }
     class Bur : IBur { }
     class Foo : IFoo { }  // with default constructor
     class Fux : IFoo { }
@@ -139,12 +181,34 @@ namespace TestProject
     {
         private Bar() { }
     }
-
+    class Qoo
+    {
+        public string foo;
+        public Qux q;
+        public Qoo(Qux a, Foo f, Bur b, string x) {
+            q = a;
+            foo = x;
+            }
+    }
     class Qux
     {
         public int x;
         public Qux(int xd) {
             x = xd;
         }
+    }
+    public class Wux
+    {
+        public Wux(int d)
+        { }
+        public Wux(string s) { }
+    }
+    class Var
+    {
+        public Var(Qoo q, Qux u, Bur b) { }
+    }
+    class Punkt
+    {
+        public Punkt(int x,int y) { }
     }
 }
