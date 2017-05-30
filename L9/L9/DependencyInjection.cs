@@ -34,7 +34,11 @@ namespace L9
         {
             registeredInstances[typeof(T)] = Instance;
         }
-        public T Resolve<T>(HashSet<Type> resolvedTypes = null)
+        public T Resolve<T>()
+        {
+            return Resolve<T>(new HashSet<Type>());
+        }
+        T Resolve<T>(HashSet<Type> resolvedTypes)
         // avoid cycles in resolving tree by remembering types in set
         // at the beginning, our set is empty
         {
@@ -45,9 +49,8 @@ namespace L9
                     currentType = registeredDependencies[currentType];
                 if (registeredInstances.ContainsKey(currentType))  // check for registered instance
                     return (T)registeredInstances[currentType];
-
                 
-                if (resolvedTypes == null) resolvedTypes = new HashSet<Type>(); // if empty, initialize
+                ///if (resolvedTypes == null) resolvedTypes = new HashSet<Type>(); // if empty, initialize
 
                 var ctors = currentType.GetConstructors();
                 // take constructors with max parameters count
@@ -74,7 +77,7 @@ namespace L9
             {
                 if (singletons.ContainsKey(key))
                     return (T)singletons[key];
-                singletons[key] = getNewInstance(); //(T)Activator.CreateInstance(key);
+                singletons[key] = getNewInstance();
                 return (T)singletons[key];
             }
             return getNewInstance();
@@ -92,15 +95,14 @@ namespace L9
                             throw new Exception("There is a cycle in a tree");
                         else
                         {
-                            HashSet<Type> resolvedTypesForNextCall = new HashSet<Type>(resolvedTypes); // we want a COPY of this set!
-                            resolvedTypesForNextCall.Add(typeof(T)); // add current type to copied set
+                            HashSet<Type> resolvedTypesForNextCall = new HashSet<Type>(resolvedTypes);  // we want a COPY of this set!
+                            resolvedTypesForNextCall.Add(typeof(T));  // add current type to copied set
                             acc.Add(
                                 this
                                 .GetType()
-                                .GetMethod("Resolve")
+                                .GetMethod("Resolve", BindingFlags.NonPublic | BindingFlags.Instance)
                                 .MakeGenericMethod(paramType)
-                                .Invoke(this, new object[] { resolvedTypesForNextCall }) // and call recursive
-                                // #Msg:
+                                .Invoke(this, new object[] { resolvedTypesForNextCall })  // and call recursive
                                 // we remember only 'Type' path between root and leaf in this way
                                 // instead of whole tree
                             );

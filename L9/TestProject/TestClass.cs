@@ -118,7 +118,7 @@ namespace TestProject
         {
             SimplyContainer sc = new SimplyContainer();
             sc.RegisterInstance<int>(5);
-            Qux q1 = new Qux(6);  // #Msg: we need this?
+            Qux q1 = new Qux(6);
             var q2 = sc.Resolve<Qux>();
             Assert.IsTrue(q2.x == 5);
         }
