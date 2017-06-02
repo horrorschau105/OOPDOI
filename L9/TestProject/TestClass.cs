@@ -28,20 +28,13 @@ namespace TestProject
             Assert.IsInstanceOfType(sc.Resolve<IFoo>(), typeof(Foo));
         }
         [TestMethod]
-        [ExpectedException(typeof(UnresolveableTypeException))]
-        public void NotRegisteredDependency()
-        {
-            SimplyContainer sc = new SimplyContainer();
-            var f = sc.Resolve<Foo>();
-        }
-        [TestMethod]
         public void ConcreteSingleton()
         {
             SimplyContainer sc = new SimplyContainer();
             sc.RegisterType<Foo>(true);
             var f1 = sc.Resolve<Foo>();
             var f2 = sc.Resolve<Foo>();
-            Assert.AreEqual(f1, f2);
+            Assert.AreSame(f1, f2);
         }
         [TestMethod]
         public void NotSingleton()
@@ -100,8 +93,8 @@ namespace TestProject
             var o4 = sc.Resolve<IFoo>();
             Assert.IsTrue(!o1.Equals(o2) && o3.Equals(o4) && o2.GetType() != o3.GetType());
         }
-    [TestMethod]
-    public void InstanceRegister()
+        [TestMethod]
+        public void RegisterInstance()
         {
             SimplyContainer sc = new SimplyContainer();
             Qux q = new Qux(4);
@@ -109,8 +102,8 @@ namespace TestProject
             var resolvedQ = sc.Resolve<Qux>();
             Assert.IsTrue(resolvedQ == q);
         }
-    [TestMethod]
-    public void ManipulateInstance()
+        [TestMethod]
+        public void ManipulateInstance()
         {
             SimplyContainer sc = new SimplyContainer();
             Qux q1 = new Qux(4);
@@ -120,9 +113,67 @@ namespace TestProject
             Qux resolved = sc.Resolve<Qux>();
             Assert.IsTrue(q2 == resolved);
         }
+        [TestMethod]
+        public void SimpleMultiparameterConstructor()
+        {
+            SimplyContainer sc = new SimplyContainer();
+            sc.RegisterInstance<int>(5);
+            Qux q1 = new Qux(6);
+            var q2 = sc.Resolve<Qux>();
+            Assert.IsTrue(q2.x == 5);
+        }
+        [TestMethod]
+        [ExpectedException(typeof(UnresolveableTypeException))]
+        public void SimpleCycleInTree()
+        {
+            SimplyContainer sc = new SimplyContainer();
+            var x = sc.Resolve<Bux>();
+            Assert.Fail();
+        }
+        [TestMethod]
+        public void ConstructorWithFourParamsToResolve()
+        {
+            var sc = new SimplyContainer();
+            sc.RegisterInstance<string>("test");
+            sc.RegisterInstance<int>(17);
+            var res = sc.Resolve<Qoo>();
+            Assert.IsTrue(res.foo == "test" && res.q.x == 17);
+        }
+        [TestMethod]
+        [ExpectedException(typeof(UnresolveableTypeException))]
+        public void ManyConstructorsOfMaxParamCount()
+        {
+            SimplyContainer sc = new SimplyContainer();
+            var x = sc.Resolve<Wux>();
+            Assert.Fail();
+        }
+        [TestMethod]
+        public void ClassWithSameTypeParam()
+        {
+            SimplyContainer sc = new SimplyContainer();
+            sc.RegisterInstance(7);
+            var p = sc.Resolve<Punkt>();
+            Assert.IsTrue(p != null);
+        }
+        [TestMethod]
+        //[ExpectedException(typeof(UnresolveableTypeException))]
+        public void ResolveManyTimesSameTypeButNoCycleInTree()
+        {
+            SimplyContainer sc = new SimplyContainer();
+            sc.RegisterInstance(5);
+            sc.RegisterInstance("");
+            var x = sc.Resolve<Var>();
+            Assert.IsTrue(x != null);
+        }
+
+
     }
     interface IFoo { }
     interface IBur : IFoo { }
+    class Bux
+    {
+        public Bux(Bux x) { }
+    }
     class Bur : IBur { }
     class Foo : IFoo { }  // with default constructor
     class Fux : IFoo { }
@@ -130,9 +181,34 @@ namespace TestProject
     {
         private Bar() { }
     }
-
+    class Qoo
+    {
+        public string foo;
+        public Qux q;
+        public Qoo(Qux a, Foo f, Bur b, string x) {
+            q = a;
+            foo = x;
+            }
+    }
     class Qux
     {
-        public Qux(int xd) { }
+        public int x;
+        public Qux(int xd) {
+            x = xd;
+        }
+    }
+    public class Wux
+    {
+        public Wux(int d)
+        { }
+        public Wux(string s) { }
+    }
+    class Var
+    {
+        public Var(Qoo q, Qux u, Bur b) { }
+    }
+    class Punkt
+    {
+        public Punkt(int x,int y) { }
     }
 }

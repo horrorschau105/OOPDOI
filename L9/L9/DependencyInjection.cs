@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -8,7 +9,7 @@ namespace L9
 {
     public class SimplyContainer  
     {
-        Dictionary<Type, object> registeredInstances; // for registered instances
+        Dictionary<Type, object> registeredInstances;  // for registered instances
         Dictionary<Type, object> singletons;  // for constructed singletons
         Dictionary<Type, bool> registeredTypes;  //  foreach class remember if it wants singleton
         Dictionary<Type, Type> registeredDependencies;  // foreach class/interface remember deriving class
@@ -33,38 +34,84 @@ namespace L9
         {
             registeredInstances[typeof(T)] = Instance;
         }
-        public T Resolve<T>()  
+        public T Resolve<T>()
+        {
+            return Resolve<T>(new HashSet<Type>());
+        }
+        T Resolve<T>(HashSet<Type> resolvedTypes)
+        // avoid cycles in resolving tree by remembering types in set
+        // at the beginning, our set is empty
         {
             try
             {
-                var currentType = typeof(T);  
+                var currentType = typeof(T);
                 while (registeredDependencies.ContainsKey(currentType))  // first checks in Dependencies
-                {
                     currentType = registeredDependencies[currentType];
-                }
-                if (registeredInstances.ContainsKey(currentType)) // check for registered instance
+                if (registeredInstances.ContainsKey(currentType))  // check for registered instance
                     return (T)registeredInstances[currentType];
-                if (registeredTypes.ContainsKey(currentType))  // otherwise T should be here registered
-                    return GetObject<T>(currentType);
                 
-                throw new Exception(string.Format("Not registered type: {0}\n", currentType.ToString()));
-            }
+                ///if (resolvedTypes == null) resolvedTypes = new HashSet<Type>(); // if empty, initialize
+
+                var ctors = currentType.GetConstructors();
+                // take constructors with max parameters count
+                var maxCtors = ctors.Where(ci => ci.GetParameters().Count() == 
+                    ctors.Max(x => x.GetParameters().Count()));
+                if (maxCtors.Count() > 1)
+                    throw new Exception("There is more than one constructor with maximal count of parameters\n");
+                var constructor = maxCtors.First();
+                // handle singleton, pass as a parameter 'a way' to create new instance
+                var resolvedInstance = GetObject<T>(currentType, 
+                    () => InvokeConstructor<T>(constructor, resolvedTypes));
+
+                return resolvedInstance;
+                
+                }
             catch (Exception e)
             {
                 throw new UnresolveableTypeException("Unable to resolve\n"+ e.ToString());
             }
         }
-        T GetObject<T>(Type type)  // returns object of type T, handling the singletons
+        T GetObject<T>(Type key, Func<T> getNewInstance)
         {
-            var key = type;  
-            if (registeredTypes[type])  // return singleton
+            if (registeredTypes.ContainsKey(key) && registeredTypes[key])  // return singleton
             {
                 if (singletons.ContainsKey(key))
                     return (T)singletons[key];
-                singletons[key] = (T)Activator.CreateInstance(type);
+                singletons[key] = getNewInstance();
                 return (T)singletons[key];
             }
-            return (T)Activator.CreateInstance(type); 
+            return getNewInstance();
+        }
+        T InvokeConstructor<T>(ConstructorInfo constructor, HashSet<Type> resolvedTypes)  // returns object of type T, handling the singletons
+        {
+            return (T)constructor.Invoke(
+                constructor
+                .GetParameters()
+                .Aggregate(  // iterate over parameters, resolve each one, add resolved to List
+                    new List<object>(),
+                    (acc, param) => {
+                        Type paramType = param.ParameterType;
+                        if (resolvedTypes.Contains(paramType))
+                            throw new Exception("There is a cycle in a tree");
+                        else
+                        {
+                            HashSet<Type> resolvedTypesForNextCall = new HashSet<Type>(resolvedTypes);  // we want a COPY of this set!
+                            resolvedTypesForNextCall.Add(typeof(T));  // add current type to copied set
+                            acc.Add(
+                                this
+                                .GetType()
+                                .GetMethod("Resolve", BindingFlags.NonPublic | BindingFlags.Instance)
+                                .MakeGenericMethod(paramType)
+                                .Invoke(this, new object[] { resolvedTypesForNextCall })  // and call recursive
+                                // we remember only 'Type' path between root and leaf in this way
+                                // instead of whole tree
+                            );
+                            return acc;
+                        }
+                    }
+                )
+                .ToArray()
+            );  
         }
     }
 
