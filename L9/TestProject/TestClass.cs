@@ -156,7 +156,6 @@ namespace TestProject
             Assert.IsTrue(p != null);
         }
         [TestMethod]
-        //[ExpectedException(typeof(UnresolveableTypeException))]
         public void ResolveManyTimesSameTypeButNoCycleInTree()
         {
             SimplyContainer sc = new SimplyContainer();
@@ -165,7 +164,27 @@ namespace TestProject
             var x = sc.Resolve<Var>();
             Assert.IsTrue(x != null);
         }
-
+        [TestMethod]
+        public void ForeignObjectNotResolved()
+        {
+            SimplyContainer sc = new SimplyContainer();
+            Qux q = new Qux(14);
+            sc.RegisterInstance("67");
+            sc.BuildUp<Qux>(q);
+            sc.RegisterType<Qoo>(false);
+            var resolved = sc.Resolve<Qoo>();
+            Assert.IsTrue(resolved.q.x == 14);
+        }
+        [TestMethod]
+        public void FindBuiltUpInstance()
+        {
+            SimplyContainer sc = new SimplyContainer();
+            sc.RegisterType<IFoo, IBur>(false);
+            Qux x = new Qux(56);
+            sc.BuildUp<IBur>(x);
+            Qux resolved = (Qux)sc.Resolve<IFoo>();
+            Assert.IsTrue(resolved.x == 56);
+        }
 
     }
     interface IFoo { }
@@ -190,7 +209,7 @@ namespace TestProject
             foo = x;
             }
     }
-    class Qux
+    class Qux : IBur
     {
         public int x;
         public Qux(int xd) {

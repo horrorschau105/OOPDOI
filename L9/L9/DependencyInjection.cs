@@ -34,6 +34,10 @@ namespace L9
         {
             registeredInstances[typeof(T)] = Instance;
         }
+        public void BuildUp<T>(T Instance)
+        {
+            registeredInstances[typeof(T)] = Instance; // same as RegisterInstance
+        }
         public T Resolve<T>()
         {
             return Resolve<T>(new HashSet<Type>());
@@ -46,11 +50,13 @@ namespace L9
             {
                 var currentType = typeof(T);
                 while (registeredDependencies.ContainsKey(currentType))  // first checks in Dependencies
+                {
+                    if (registeredInstances.ContainsKey(currentType))  // check for registered instance
+                        return (T)registeredInstances[currentType]; // if we have some built up instances, we don't have to resolve them
                     currentType = registeredDependencies[currentType];
+                }
                 if (registeredInstances.ContainsKey(currentType))  // check for registered instance
                     return (T)registeredInstances[currentType];
-                
-                ///if (resolvedTypes == null) resolvedTypes = new HashSet<Type>(); // if empty, initialize
 
                 var ctors = currentType.GetConstructors();
                 // take constructors with max parameters count
